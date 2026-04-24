@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro PDF Merger & Sorter</title>
 
-
+```
 <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
@@ -130,13 +130,13 @@
         background: #eee;
     }
 </style>
-
+```
 
 </head>
 
 <body>
 
-
+```
 <div class="container">
     <h2>PDF Merger & Sorter</h2>
 
@@ -273,13 +273,13 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
 
-        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        const dataUrl = canvas.toDataURL("image/png");
 
         fetch(dataUrl)
             .then(res => res.arrayBuffer())
             .then(buffer => {
-                const file = new File([buffer], `capture_${Date.now()}.jpg`, {
-                    type: "image/jpeg"
+                const file = new File([buffer], `capture_${Date.now()}.png`, {
+                    type: "image/png"
                 });
                 handleFiles([file]);
             });
@@ -288,6 +288,26 @@
         cameraContainer.style.display = "none";
     };
 
+    async function fileToPngBuffer(file) {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+
+        return new Promise((resolve) => {
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                canvas.getContext('2d').drawImage(img, 0, 0);
+
+                canvas.toBlob(async (blob) => {
+                    const buffer = await blob.arrayBuffer();
+                    resolve(buffer);
+                }, "image/png");
+            };
+            img.src = url;
+        });
+    }
+
     mergeBtn.onclick = async () => {
         mergeBtn.disabled = true;
 
@@ -295,25 +315,16 @@
         const mergedPdf = await PDFDocument.create();
 
         for (const file of filesArray) {
-            const buffer = await file.arrayBuffer();
-            let img;
-
             if (file.type === "application/pdf") {
+                const buffer = await file.arrayBuffer();
                 const pdf = await PDFDocument.load(buffer);
                 const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                 pages.forEach(p => mergedPdf.addPage(p));
                 continue;
             }
 
-            try {
-                if (file.type === "image/png") {
-                    img = await mergedPdf.embedPng(buffer);
-                } else {
-                    img = await mergedPdf.embedJpg(buffer);
-                }
-            } catch {
-                img = await mergedPdf.embedPng(buffer);
-            }
+            const pngBuffer = await fileToPngBuffer(file);
+            const img = await mergedPdf.embedPng(pngBuffer);
 
             const page = mergedPdf.addPage([img.width, img.height]);
             page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
@@ -330,7 +341,7 @@
         mergeBtn.disabled = false;
     };
 </script>
-
+```
 
 </body>
 
