@@ -246,10 +246,8 @@
         updateUI();
     };
 
-    // 📸 CAMERA
     cameraBtn.onclick = async () => {
         cameraContainer.style.display = "block";
-
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: "environment" }
@@ -260,24 +258,6 @@
         }
     };
 
-    captureBtn.onclick = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-
-        canvas.getContext('2d').drawImage(video, 0, 0);
-
-        canvas.toBlob(blob => {
-            const file = new File([blob], `capture_${Date.now()}.jpg`, {
-                type: "image/jpeg"
-            });
-            handleFiles([file]);
-        });
-
-        stopCamera();
-        cameraContainer.style.display = "none";
-    };
-
     function stopCamera() {
         if (stream) {
             stream.getTracks().forEach(t => t.stop());
@@ -285,7 +265,29 @@
         }
     }
 
-    // 📄 MERGE
+    captureBtn.onclick = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+
+        fetch(dataUrl)
+            .then(res => res.arrayBuffer())
+            .then(buffer => {
+                const file = new File([buffer], `capture_${Date.now()}.jpg`, {
+                    type: "image/jpeg"
+                });
+                handleFiles([file]);
+            });
+
+        stopCamera();
+        cameraContainer.style.display = "none";
+    };
+
     mergeBtn.onclick = async () => {
         mergeBtn.disabled = true;
 
@@ -294,19 +296,27 @@
 
         for (const file of filesArray) {
             const buffer = await file.arrayBuffer();
+            let img;
 
             if (file.type === "application/pdf") {
                 const pdf = await PDFDocument.load(buffer);
                 const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                 pages.forEach(p => mergedPdf.addPage(p));
-            } else {
-                const img = file.type === "image/png"
-                    ? await mergedPdf.embedPng(buffer)
-                    : await mergedPdf.embedJpg(buffer);
-
-                const page = mergedPdf.addPage([img.width, img.height]);
-                page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
+                continue;
             }
+
+            try {
+                if (file.type === "image/png") {
+                    img = await mergedPdf.embedPng(buffer);
+                } else {
+                    img = await mergedPdf.embedJpg(buffer);
+                }
+            } catch {
+                img = await mergedPdf.embedPng(buffer);
+            }
+
+            const page = mergedPdf.addPage([img.width, img.height]);
+            page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
         }
 
         const pdfBytes = await mergedPdf.save();
