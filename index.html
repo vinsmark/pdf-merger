@@ -1,319 +1,327 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pro PDF Merger & Sorter</title>
-    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            color: #333;
-            margin: 0;
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
 
-        .container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
-            padding: 30px;
-        }
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
-        h2 {
-            text-align: center;
-            color: #1a73e8;
-            margin-bottom: 20px;
-        }
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 40px;
+        display: flex;
+        justify-content: center;
+    }
 
-        #drop-zone {
-            border: 2px dashed #1a73e8;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            background: #f8fbff;
-            transition: 0.3s;
-            color: #1a73e8;
-            font-weight: 600;
-        }
+    .container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 600px;
+        padding: 30px;
+    }
 
-        #drop-zone:hover {
-            background: #eef5ff;
-        }
+    h2 {
+        text-align: center;
+        color: #1a73e8;
+    }
 
-        #file-list {
-            margin: 20px 0;
-            min-height: 50px;
-        }
+    #drop-zone {
+        border: 2px dashed #1a73e8;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        background: #f8fbff;
+        color: #1a73e8;
+        font-weight: 600;
+        margin-bottom: 10px;
+    }
 
-        .file-item {
-            display: flex;
-            align-items: center;
-            background: #fff;
-            border: 1px solid #ddd;
-            margin-bottom: 8px;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: grab;
-            transition: background 0.2s;
-        }
+    #camera-btn {
+        width: 100%;
+        margin-top: 10px;
+        background: #34a853;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
 
-        .file-item:active {
-            cursor: grabbing;
-            background: #f9f9f9;
-        }
+    #camera-container {
+        display: none;
+        margin-top: 15px;
+        text-align: center;
+    }
 
-        .file-number {
-            background: #1a73e8;
-            color: white;
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
+    video {
+        width: 100%;
+        border-radius: 8px;
+    }
 
-        .file-item .name {
-            flex-grow: 1;
-            font-size: 14px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-weight: 500;
-        }
+    #capture-btn {
+        margin-top: 10px;
+        background: #ea4335;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
 
-        .file-item .remove-btn {
-            color: #ff4d4d;
-            cursor: pointer;
-            font-weight: bold;
-            margin-left: 10px;
-            padding: 5px;
-            font-size: 18px;
-            line-height: 1;
-        }
+    .file-item {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ddd;
+        margin-top: 8px;
+        padding: 10px;
+        border-radius: 6px;
+        background: #fff;
+        cursor: grab;
+    }
 
-        .file-item .remove-btn:hover {
-            color: #cc0000;
-        }
+    .file-number {
+        background: #1a73e8;
+        color: white;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        text-align: center;
+        margin-right: 10px;
+        font-size: 12px;
+    }
 
-        .actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
+    .remove-btn {
+        margin-left: auto;
+        color: red;
+        cursor: pointer;
+    }
 
-        button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
-            font-size: 15px;
-        }
+    .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+    }
 
-        #merge-btn {
-            background: #1a73e8;
-            color: white;
-        }
+    button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
 
-        #merge-btn:hover {
-            background: #1557b0;
-        }
+    #merge-btn {
+        background: #1a73e8;
+        color: white;
+    }
 
-        #merge-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
+    #clear-btn {
+        background: #eee;
+    }
+</style>
+```
 
-        #clear-btn {
-            background: #f1f3f4;
-            color: #3c4043;
-        }
-
-        #clear-btn:hover {
-            background: #e8eaed;
-        }
-
-        .hint {
-            font-size: 12px;
-            color: #666;
-            text-align: center;
-            margin-top: 10px;
-            font-style: italic;
-        }
-    </style>
 </head>
 
 <body>
 
-    <div class="container">
-        <h2>PDF Merger & Sorter</h2>
+```
+<div class="container">
+    <h2>PDF Merger & Sorter</h2>
 
-        <div id="drop-zone">
-            Click or Drag Files Here<br>
-            <span style="font-size: 12px; font-weight: normal; color: #555;">(Supports: PDF, PNG, JPG)</span>
-        </div>
-
-        <input type="file" id="file-input" multiple hidden accept=".pdf,image/*">
-
-        <div id="file-list"></div>
-
-        <div class="hint">↕️ Drag to reorder. The numbers update automatically!</div>
-
-        <div class="actions">
-            <button id="clear-btn">Clear All</button>
-            <button id="merge-btn" disabled>Merge & Download</button>
-        </div>
+    <div id="drop-zone">
+        Click or Drag Files Here
     </div>
 
-    <script>
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const fileList = document.getElementById('file-list');
-        const mergeBtn = document.getElementById('merge-btn');
-        const clearBtn = document.getElementById('clear-btn');
+    <button id="camera-btn">📸 Use Camera</button>
 
-        let filesArray = [];
+    <div id="camera-container">
+        <video id="camera" autoplay playsinline></video>
+        <button id="capture-btn">Capture</button>
+    </div>
 
-        const sortable = new Sortable(fileList, {
-            animation: 150,
-            ghostClass: 'sortable-ghost',
-            onEnd: () => {
-                reorderFiles();
-                updateNumbers();
-            }
-        });
+    <input type="file" id="file-input" multiple hidden accept=".pdf,image/*">
 
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => handleFiles(e.target.files);
+    <div id="file-list"></div>
 
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.style.borderColor = '#000'; };
-        dropZone.ondragleave = () => dropZone.style.borderColor = '#1a73e8';
-        dropZone.ondrop = (e) => {
-            e.preventDefault();
-            dropZone.style.borderColor = '#1a73e8';
-            handleFiles(e.dataTransfer.files);
-        };
+    <div class="actions">
+        <button id="clear-btn">Clear</button>
+        <button id="merge-btn" disabled>Merge & Download</button>
+    </div>
+</div>
 
-        function handleFiles(files) {
-            for (let file of files) {
-                const id = Math.random().toString(36).substr(2, 9);
-                file.id = id;
-                filesArray.push(file);
-                renderFileItem(file);
-            }
+<script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const fileList = document.getElementById('file-list');
+    const mergeBtn = document.getElementById('merge-btn');
+    const clearBtn = document.getElementById('clear-btn');
+
+    const cameraBtn = document.getElementById('camera-btn');
+    const cameraContainer = document.getElementById('camera-container');
+    const video = document.getElementById('camera');
+    const captureBtn = document.getElementById('capture-btn');
+
+    let filesArray = [];
+    let stream = null;
+
+    new Sortable(fileList, {
+        animation: 150,
+        onEnd: () => {
+            reorderFiles();
             updateNumbers();
-            updateUI();
         }
+    });
 
-        function renderFileItem(file) {
-            const div = document.createElement('div');
-            div.className = 'file-item';
-            div.dataset.id = file.id;
-            div.innerHTML = `
+    dropZone.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => handleFiles(e.target.files);
+
+    dropZone.ondragover = (e) => e.preventDefault();
+    dropZone.ondrop = (e) => {
+        e.preventDefault();
+        handleFiles(e.dataTransfer.files);
+    };
+
+    function handleFiles(files) {
+        for (let file of files) {
+            file.id = Math.random().toString(36).substr(2, 9);
+            filesArray.push(file);
+            renderFileItem(file);
+        }
+        updateNumbers();
+        updateUI();
+    }
+
+    function renderFileItem(file) {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.dataset.id = file.id;
+        div.innerHTML = `
             <div class="file-number">0</div>
-            <span class="name">${file.name}</span>
-            <span class="remove-btn" title="Remove file">&times;</span>
+            <span>${file.name}</span>
+            <span class="remove-btn">&times;</span>
         `;
 
-            // Add remove listener
-            div.querySelector('.remove-btn').onclick = (e) => {
-                e.stopPropagation();
-                removeFile(file.id);
-            };
+        div.querySelector('.remove-btn').onclick = () => removeFile(file.id);
 
-            fileList.appendChild(div);
-        }
+        fileList.appendChild(div);
+    }
 
-        function removeFile(id) {
-            filesArray = filesArray.filter(f => f.id !== id);
-            const el = fileList.querySelector(`[data-id="${id}"]`);
-            el.remove();
-            updateNumbers();
-            updateUI();
-        }
+    function removeFile(id) {
+        filesArray = filesArray.filter(f => f.id !== id);
+        document.querySelector(`[data-id="${id}"]`).remove();
+        updateNumbers();
+        updateUI();
+    }
 
-        // This updates the visual "1, 2, 3..." badges
-        function updateNumbers() {
-            const items = fileList.querySelectorAll('.file-item');
-            items.forEach((item, index) => {
-                item.querySelector('.file-number').textContent = index + 1;
+    function updateNumbers() {
+        document.querySelectorAll('.file-item').forEach((el, i) => {
+            el.querySelector('.file-number').textContent = i + 1;
+        });
+    }
+
+    function reorderFiles() {
+        const ids = [...document.querySelectorAll('.file-item')].map(el => el.dataset.id);
+        filesArray = ids.map(id => filesArray.find(f => f.id === id));
+    }
+
+    function updateUI() {
+        mergeBtn.disabled = filesArray.length === 0;
+    }
+
+    clearBtn.onclick = () => {
+        filesArray = [];
+        fileList.innerHTML = '';
+        updateUI();
+    };
+
+    // 📸 CAMERA
+    cameraBtn.onclick = async () => {
+        cameraContainer.style.display = "block";
+
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" }
             });
+            video.srcObject = stream;
+        } catch {
+            alert("Camera not available.");
         }
+    };
 
-        // Syncs the internal array with the visual order
-        function reorderFiles() {
-            const newOrder = Array.from(fileList.querySelectorAll('.file-item')).map(el => el.dataset.id);
-            filesArray = newOrder.map(id => filesArray.find(f => f.id === id));
+    captureBtn.onclick = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        canvas.getContext('2d').drawImage(video, 0, 0);
+
+        canvas.toBlob(blob => {
+            const file = new File([blob], `capture_${Date.now()}.jpg`, {
+                type: "image/jpeg"
+            });
+            handleFiles([file]);
+        });
+
+        stopCamera();
+        cameraContainer.style.display = "none";
+    };
+
+    function stopCamera() {
+        if (stream) {
+            stream.getTracks().forEach(t => t.stop());
+            stream = null;
         }
+    }
 
-        function updateUI() {
-            mergeBtn.disabled = filesArray.length === 0;
-        }
+    // 📄 MERGE
+    mergeBtn.onclick = async () => {
+        mergeBtn.disabled = true;
 
-        clearBtn.onclick = () => {
-            filesArray = [];
-            fileList.innerHTML = '';
-            updateUI();
-        };
+        const { PDFDocument } = PDFLib;
+        const mergedPdf = await PDFDocument.create();
 
-        async function mergeFiles() {
-            const originalText = mergeBtn.innerText;
-            mergeBtn.innerText = "Merging Pages...";
-            mergeBtn.disabled = true;
+        for (const file of filesArray) {
+            const buffer = await file.arrayBuffer();
 
-            try {
-                const { PDFDocument } = PDFLib;
-                const mergedPdf = await PDFDocument.create();
+            if (file.type === "application/pdf") {
+                const pdf = await PDFDocument.load(buffer);
+                const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                pages.forEach(p => mergedPdf.addPage(p));
+            } else {
+                const img = file.type === "image/png"
+                    ? await mergedPdf.embedPng(buffer)
+                    : await mergedPdf.embedJpg(buffer);
 
-                for (const file of filesArray) {
-                    const arrayBuffer = await file.arrayBuffer();
-
-                    if (file.type === "application/pdf") {
-                        const pdf = await PDFDocument.load(arrayBuffer);
-                        const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
-                        pages.forEach(p => mergedPdf.addPage(p));
-                    } else if (file.type.startsWith("image/")) {
-                        const img = file.type === "image/png" ? await mergedPdf.embedPng(arrayBuffer) : await mergedPdf.embedJpg(arrayBuffer);
-                        const page = mergedPdf.addPage([img.width, img.height]);
-                        page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
-                    }
-                }
-
-                const pdfBytes = await mergedPdf.save();
-                const blob = new Blob([pdfBytes], { type: "application/pdf" });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `merged_document_${Date.now()}.pdf`;
-                link.click();
-            } catch (error) {
-                alert("Error merging files: " + error.message);
-            } finally {
-                mergeBtn.innerText = originalText;
-                mergeBtn.disabled = false;
+                const page = mergedPdf.addPage([img.width, img.height]);
+                page.drawImage(img, { x: 0, y: 0, width: img.width, height: img.height });
             }
         }
 
-        mergeBtn.onclick = mergeFiles;
-    </script>
+        const pdfBytes = await mergedPdf.save();
+        const blob = new Blob([pdfBytes], { type: "application/pdf" });
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = "merged.pdf";
+        link.click();
+
+        mergeBtn.disabled = false;
+    };
+</script>
+
 
 </body>
 
-</html> 
+</html>
