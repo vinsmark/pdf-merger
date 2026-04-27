@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pro PDF Builder</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+</head>
+
+<body class="bg-gray-100 p-6 flex justify-center">
+
+    <div class="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-6">
+
+        <h2 class="text-center text-blue-600 text-2xl font-bold mb-4">
+            <i class="fa-solid fa-file-pdf"></i> PDF Builder
+        </h2>
+
+        <div id="drop-zone"
+            class="border-2 border-dashed border-blue-500 rounded-xl p-8 text-center cursor-pointer hover:bg-blue-50 transition">
+
+            <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-500 mb-2"></i>
+            <p class="font-semibold text-blue-600">Click or Drag Images</p>
+            <p class="text-xs text-gray-500">PNG, JPG</p>
+        </div>
+
+        <input type="file" id="file-input" multiple accept="image/*" hidden>
+
+        <div class="mt-4 flex gap-3">
+            <select id="layout" class="flex-1 p-2 border rounded-lg">
+                <option value="1">1 per page</option>
+                <option value="2">2 per page</option>
+                <option value="4">4 per page</option>
+            </select>
+
+            <button id="export" class="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700">
+                <i class="fa-solid fa-file-export"></i> Export
+            </button>
+        </div>
+
+        <div id="image-list" class="mt-4 space-y-2"></div>
+
+        <div id="preview" class="mt-6 space-y-4"></div>
+
+    </div>
+
+    <script>
+        const dropZone = document.getElementById("drop-zone");
+        const fileInput = document.getElementById("file-input");
+        const imageList = document.getElementById("image-list");
+        const preview = document.getElementById("preview");
+        const layoutSelect = document.getElementById("layout");
+
+        let images = [];
+
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = e => handleFiles(e.target.files);
+
+        dropZone.ondragover = e => e.preventDefault();
+        dropZone.ondrop = e => {
+            e.preventDefault();
+            handleFiles(e.dataTransfer.files);
+        };
+
+        function handleFiles(files) {
+            for (let file of files) {
+                images.push({
+                    id: Math.random().toString(36).substr(2, 9),
+                    file,
+                    url: URL.createObjectURL(file)
+                });
+            }
+            renderList();
+            renderPreview();
+        }
+
+        new Sortable(imageList, {
+            animation: 150,
+            onEnd: () => {
+                const ids = [...imageList.children].map(el => el.dataset.id);
+                images = ids.map(id => images.find(i => i.id === id));
+                renderPreview();
+            }
+        });
+
+        function renderList() {
+            imageList.innerHTML = "";
+
+            images.forEach((img, i) => {
+                const div = document.createElement("div");
+                div.dataset.id = img.id;
+                div.className = "flex items-center bg-gray-50 p-2 rounded-lg shadow";
+
+                div.innerHTML = `
+            <div class="w-6 h-6 bg-blue-600 text-white text-xs flex items-center justify-center rounded-full mr-3">
+                ${i + 1}
+            </div>
+            <img src="${img.url}" class="w-12 h-12 object-cover rounded mr-3">
+            <span class="text-sm flex-1">${img.file.name}</span>
+            <i class="fa-solid fa-xmark text-red-500 cursor-pointer"></i>
+        `;
+
+                div.querySelector("i").onclick = () => {
+                    images = images.filter(f => f.id !== img.id);
+                    renderList();
+                    renderPreview();
+                };
+
+                imageList.appendChild(div);
+            });
+        }
+
+        layoutSelect.onchange = renderPreview;
+
+        function chunk(arr, size) {
+            let res = [];
+            for (let i = 0; i < arr.length; i += size) {
+                res.push(arr.slice(i, i + size));
+            }
+            return res;
+        }
+
+        function renderPreview() {
+
+            preview.innerHTML = "";
+
+            const layout = parseInt(layoutSelect.value);
+            const pages = chunk(images, layout);
+
+            pages.forEach((group, index) => {
+
+                const page = document.createElement("div");
+                page.className = "bg-white border rounded-xl p-3 shadow";
+
+                const grid = document.createElement("div");
+
+                const cols = Math.ceil(Math.sqrt(group.length));
+                grid.className = "grid gap-2";
+                grid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+
+                group.forEach(img => {
+                    const el = document.createElement("img");
+                    el.src = img.url;
+                    el.className = "w-full h-40 object-contain border rounded";
+                    grid.appendChild(el);
+                });
+
+                page.innerHTML = `<p class="text-xs text-gray-500 mb-2">Page ${index + 1}</p>`;
+                page.appendChild(grid);
+
+                preview.appendChild(page);
+            });
+        }
+
+        async function fileToBuffer(file) {
+            const img = new Image();
+            const url = URL.createObjectURL(file);
+
+            return new Promise(resolve => {
+                img.onload = () => {
+                    const canvas = document.createElement("canvas");
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    canvas.getContext("2d").drawImage(img, 0, 0);
+
+                    canvas.toBlob(async blob => {
+                        resolve(await blob.arrayBuffer());
+                    });
+                };
+                img.src = url;
+            });
+        }
+
+        document.getElementById("export").onclick = async () => {
+
+            const { PDFDocument } = PDFLib;
+            const pdf = await PDFDocument.create();
+
+            const layout = parseInt(layoutSelect.value);
+            const pages = chunk(images, layout);
+
+            for (const group of pages) {
+
+                const pageWidth = 595;
+                const pageHeight = 842;
+
+                const page = pdf.addPage([pageWidth, pageHeight]);
+
+                const cols = Math.ceil(Math.sqrt(group.length));
+                const rows = Math.ceil(group.length / cols);
+
+                const cellW = pageWidth / cols;
+                const cellH = pageHeight / rows;
+
+                for (let i = 0; i < group.length; i++) {
+
+                    const buffer = await fileToBuffer(group[i].file);
+                    const img = await pdf.embedPng(buffer);
+
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+
+                    const x = col * cellW;
+                    const y = pageHeight - (row + 1) * cellH;
+
+                    const scale = Math.min(cellW / img.width, cellH / img.height);
+
+                    const w = img.width * scale;
+                    const h = img.height * scale;
+
+                    page.drawImage(img, {
+                        x: x + (cellW - w) / 2,
+                        y: y + (cellH - h) / 2,
+                        width: w,
+                        height: h
+                    });
+                }
+            }
+
+            const pdfBytes = await pdf.save();
+
+            const blob = new Blob([pdfBytes], { type: "application/pdf" });
+            const link = document.createElement("a");
+
+            link.href = URL.createObjectURL(blob);
+            link.download = "output.pdf";
+            link.click();
+        };
+    </script>
+
+</body>
+
+</html>
